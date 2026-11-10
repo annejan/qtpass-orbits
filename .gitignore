@@ -1,0 +1,6 @@
+renders/
+*.mp4
+*.wav
+*.blend*
+__pycache__/
+shots*.jpg
