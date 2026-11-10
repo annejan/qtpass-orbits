@@ -251,7 +251,7 @@ def cards():
                    if datetime.fromtimestamp(S.TIMES[S.BORN[k]]).date().isoformat()
                    in ("2026-09-16", "2026-09-17"))
     return [
-        (0.3, 4.5, "centre", "QtPass", "a solar system of classes"),
+        (0.3, 3.2, "centre", "QtPass", "a solar system of classes"),
         (4.8, 8.8, "lower", "2014 – 2015", "MainWindow and its dialogs"),
         (10.6, 14.6, "lower", "November 2016",
          "Pass, ImitatePass and RealPass split off MainWindow"),

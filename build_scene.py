@@ -26,6 +26,7 @@ ERA = [(2014, (1.0, 0.72, 0.32)), (2016, (1.0, 0.48, 0.25)), (2018, (0.95, 0.32,
        (2019, (0.6, 0.45, 1.0)), (2026, (0.3, 0.8, 1.0))]
 LABEL_LINES = 500   # planets this big carry their name
 END_TITLE = TL.cards()[-1][0]  # names fade out under the end title
+OPEN_TITLE = TL.cards()[0][1]  # and come in after the opening one
 
 
 def era(k):
@@ -293,6 +294,7 @@ class Planet:
         fresh = min(max(4 - age, 0.0), 1.0) if age >= 0 else 0.0
         g = 0.0 if hidden else max(big, fresh, 1.0 if k == "mainwindow" else 0.0)
         g *= 1.0 - min(max((TL.t_of(frame) - END_TITLE + 1.0) / 1.5, 0.0), 1.0)
+        g *= min(max(TL.t_of(frame) - OPEN_TITLE + 0.5, 0.0), 1.0)
         d = math.dist(cam_loc, (x, y, z))
         self.label.location = (x, y, z + r + 0.12 + 0.02 * d)
         self.label.scale = [0.05 * d + 0.2] * 3
