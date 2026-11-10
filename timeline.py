@@ -237,6 +237,10 @@ def _system_at(day):
     return len(b), sum(b.values())
 
 
+NUMBER = {n: w for n, w in enumerate(
+    "zero one two three four five six seven eight nine ten eleven twelve".split())}
+
+
 def cards():
     """(start, end, layout, big line, small line), timed to the clock."""
     q_classes, q_lines = _system_at("2025-12-31")
@@ -259,7 +263,7 @@ def cards():
         (26.6, 32.6, "lower", "spring 2026",
          f"{spring_from:,} lines become {spring_to:,} in three months"),
         (40.0, 46.6, "lower", "16 – 17 September",
-         f"{len(split)} classes pulled off in two days"),
+         f"{NUMBER.get(len(split), len(split))} classes pulled off in two days"),
         (47.4, 51.0, "lower", "24 September",
          "“Comments that say why, once”: MainWindow sheds 461 lines"),
         (57.0, 63.5, "lower", "today", f"{classes} classes, {lines:,} lines"),

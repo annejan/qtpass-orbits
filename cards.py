@@ -69,7 +69,7 @@ def card(w, h, layout, big, small):
 
 def translated(cards):
     """The cards in CARDS_LANG (cards/<lang>.json), when it is set: same
-    times and layout, other words."""
+    times and layout, other words. {classes} and {lines} are filled in."""
     lang = os.environ.get("CARDS_LANG")
     if not lang:
         return cards
@@ -77,8 +77,7 @@ def translated(cards):
     words = json.load(open(os.path.join(HERE, "cards", f"{lang}.json")))["cards"]
     if len(words) != len(cards):
         sys.exit(f"cards/{lang}.json has {len(words)} cards, the film {len(cards)}")
-    import system
-    last = system.SIZES[-1]
+    last = timeline.S.SIZES[-1]
     # thousands with a no-break space, as most of Europe writes them
     fill = {"classes": len(last), "lines": f"{sum(last.values()):,}".replace(",", "\u00a0")}
     return [(t0, t1, layout, big.format(**fill), small.format(**fill))
