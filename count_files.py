@@ -11,6 +11,7 @@ files.json: {"paths": [path, ...], "classes": {basename: ClassName},
              "samples": [{"t": unix, "rev": sha, "subject": s,
                           "files": {path_index: lines}}, ...]}
 tags.json: [[tag, unix], ...] for every v* tag up to REV, oldest first.
+profiles.json: {basename: [256 mean line lengths, 0..1]}, the planets' bands.
 """
 import json
 import os
@@ -22,6 +23,7 @@ REPO = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/Projects/QtPa
 REV = sys.argv[2] if len(sys.argv) > 2 else "refs/heads/main"
 OUT = sys.argv[3] if len(sys.argv) > 3 else "data"
 SOURCE = re.compile(r"\.(cpp|h|ui)$")
+PROFILE = 256  # bands of line length per planet, pole to pole
 
 
 def git(*a):
@@ -49,7 +51,7 @@ class Lines:
 
 def main():
     log = git("log", "--first-parent", "--reverse", "--format=%H%x09%ct%x09%s", REV)
-    lines, paths, index, samples, headers = Lines(), [], {}, [], {}
+    lines, paths, index, samples, headers, last_blob = Lines(), [], {}, [], {}, {}
     for row in log.split("\n"):
         if not row.strip():
             continue
@@ -65,6 +67,7 @@ def main():
                 index[path] = len(paths)
                 paths.append(path)
             files[index[path]] = lines(meta.split()[2])
+            last_blob[path] = meta.split()[2]
             if path.endswith(".h"):
                 headers[path] = meta.split()[2]
         samples.append({"t": int(t), "rev": sha[:9], "subject": subject, "files": files})
@@ -76,7 +79,22 @@ def main():
                                git("cat-file", "-p", blob), re.M):
             if name.lower() == base.lower():
                 classes[base.lower()] = name
+    # the texture of each planet: the lengths of its lines, .cpp then .h then
+    # .ui, at the last commit the file existed, squeezed into PROFILE bands
+    bodies = {}
+    for path in sorted(last_blob, key=lambda p: (".cpp", ".h", ".ui").index(os.path.splitext(p)[1])):
+        k = os.path.splitext(os.path.basename(path))[0].lower()
+        text = git("cat-file", "-p", last_blob[path]).expandtabs(4)
+        bodies.setdefault(k, []).extend(len(l.rstrip()) for l in text.split("\n"))
+    profiles = {}
+    for k, ls in bodies.items():
+        out = []
+        for b in range(PROFILE):
+            chunk = ls[b * len(ls) // PROFILE:max((b + 1) * len(ls) // PROFILE, b * len(ls) // PROFILE + 1)]
+            out.append(round(min(sum(chunk) / len(chunk) / 80.0, 1.0), 3))
+        profiles[k] = out
     os.makedirs(OUT, exist_ok=True)
+    json.dump(profiles, open(os.path.join(OUT, "profiles.json"), "w"))
     json.dump({"paths": paths, "samples": samples, "classes": classes}, open(os.path.join(OUT, "files.json"), "w"))
     end = samples[-1]["t"]
     tags = git("for-each-ref", "--sort=creatordate",

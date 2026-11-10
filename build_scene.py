@@ -75,7 +75,9 @@ def sphere(name, radius, mat, segments=48):
     me = bpy.data.meshes.new(name)
     import bmesh
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=segments, v_segments=segments // 2, radius=radius)
+    bm.loops.layers.uv.new("UVMap")
+    bmesh.ops.create_uvsphere(bm, u_segments=segments, v_segments=segments // 2,
+                              radius=radius, calc_uvs=True)
     bm.to_mesh(me)
     bm.free()
     for p in me.polygons:
@@ -111,78 +113,118 @@ class Sun:
         m, self.core = glow_material("Sun", (1.0, 0.86, 0.6), 18.0, blended=False)
         self.ob = sphere("Sun", 1.0, m, 64)
         self.ob.visible_shadow = False
-        # the corona: a bigger shell, bright where it faces you edge-on
-        m = bpy.data.materials.new("Corona")
-        nt = m.node_tree
-        nt.nodes.clear()
-        out = node(nt, "ShaderNodeOutputMaterial", (800, 0))
-        lw = node(nt, "ShaderNodeLayerWeight", (-200, 0))
-        lw.inputs["Blend"].default_value = 0.3
-        inv = node(nt, "ShaderNodeMath", (0, 0), operation="SUBTRACT")
-        inv.inputs[0].default_value = 1.0
-        nt.links.new(lw.outputs["Facing"], inv.inputs[1])
-        pw = node(nt, "ShaderNodeMath", (150, 0), operation="POWER")
-        pw.inputs[1].default_value = 5.0
-        nt.links.new(inv.outputs[0], pw.inputs[0])
-        mul = node(nt, "ShaderNodeMath", (300, 0), operation="MULTIPLY")
-        mul.inputs[1].default_value = 1.2
-        nt.links.new(pw.outputs[0], mul.inputs[0])
-        em = node(nt, "ShaderNodeEmission", (450, 100))
-        em.inputs["Color"].default_value = (1.0, 0.7, 0.35, 1)
-        nt.links.new(mul.outputs[0], em.inputs["Strength"])
-        tr = node(nt, "ShaderNodeBsdfTransparent", (450, -100))
-        add = node(nt, "ShaderNodeAddShader", (650, 0))
-        nt.links.new(em.outputs[0], add.inputs[0])
-        nt.links.new(tr.outputs[0], add.inputs[1])
-        nt.links.new(add.outputs[0], out.inputs[0])
-        m.surface_render_method = "BLENDED"
-        self.flare = mul.inputs[1]
-        self.corona = sphere("Corona", 1.7, m, 64)
-        self.corona.visible_shadow = False
+        # no corona shell: blended over the inner planets it washed them
+        # out; the glow comes from the bloom in finish.sh
         lamp = bpy.data.lights.new("Sunlight", "POINT")
-        lamp.energy = 9000
+        lamp.energy = 6000
         lamp.color = (1.0, 0.9, 0.75)
         lamp.shadow_soft_size = 1.0
         self.lamp = lamp
         link(bpy.data.objects.new("Sunlight", lamp))
 
     def update(self, frame, flare):
-        self.flare.default_value = 1.2 + 6.0 * flare
         self.core.default_value = 18.0 + 30.0 * flare
-        self.corona.scale = [1 + 0.35 * flare] * 3
 
 
 # ---------------------------------------------------------------- planets
 
+def band_image(k):
+    """The planet's bands: its own lines, pole to pole, long lines bright,
+    short and blank ones dark, stretched to the planet's own range."""
+    p = S.PROFILES.get(k) or [0.5] * 8
+    lo, hi = min(p), max(p)
+    v = [(x - lo) / (hi - lo) if hi > lo else 0.5 for x in p]
+    img = bpy.data.images.new("Bands " + k, 4, len(v), float_buffer=True)
+    px = np.repeat(np.array(v, dtype=np.float32)[::-1], 4)  # row 0 is the south pole
+    rgba = np.ones((len(v) * 4, 4), dtype=np.float32)
+    rgba[:, 0] = rgba[:, 1] = rgba[:, 2] = px
+    img.colorspace_settings.name = "Non-Color"  # before the pixels: it reloads the buffer
+    img.pixels.foreach_set(rgba.ravel())
+    img.update()
+    img.pack()
+    return img
+
+
 def planet_material(k):
+    """A gas giant banded by its own source code, swirled by noise, with a
+    rim of its era's colour that flares while commits land on it."""
     rgb = era(k)
     m = bpy.data.materials.new("Planet " + k)
     nt = m.node_tree
     b = nt.nodes["Principled BSDF"]
-    b.inputs["Base Color"].default_value = (*[c * 0.8 for c in rgb], 1)
-    b.inputs["Roughness"].default_value = 0.25
-    b.inputs["Coat Weight"].default_value = 0.6
+    b.inputs["Roughness"].default_value = 0.55
+    b.inputs["Specular IOR Level"].default_value = 0.25
     b.inputs["Emission Color"].default_value = (*rgb, 1)
-    b.inputs["Emission Strength"].default_value = 0.04
+    b.inputs["Emission Strength"].default_value = 0.03
     out = nt.nodes["Material Output"]
+    seed = (sum(map(ord, k)) % 97) * 0.37
+    # the bands: latitude, swirled
+    tc = node(nt, "ShaderNodeTexCoord", (-1400, 0))
+    sep = node(nt, "ShaderNodeSeparateXYZ", (-1200, 100))
+    nt.links.new(tc.outputs["UV"], sep.inputs[0])
+    swirl = node(nt, "ShaderNodeTexNoise", (-1200, -150))
+    swirl.inputs["Scale"].default_value = 2.2
+    swirl.inputs["Detail"].default_value = 6.0
+    swirl.inputs["Distortion"].default_value = 1.5
+    swirl.noise_dimensions = "4D"
+    swirl.inputs["W"].default_value = seed
+    nt.links.new(tc.outputs["Object"], swirl.inputs["Vector"])
+    off = node(nt, "ShaderNodeMath", (-1000, -150), operation="MULTIPLY_ADD")
+    off.inputs[1].default_value = 0.07
+    off.inputs[2].default_value = -0.035
+    nt.links.new(swirl.outputs["Fac"], off.inputs[0])
+    lat = node(nt, "ShaderNodeMath", (-850, 50), operation="ADD")
+    nt.links.new(sep.outputs["Y"], lat.inputs[0])
+    nt.links.new(off.outputs[0], lat.inputs[1])
+    comb = node(nt, "ShaderNodeCombineXYZ", (-700, 50))
+    comb.inputs["X"].default_value = 0.5
+    nt.links.new(lat.outputs[0], comb.inputs["Y"])
+    tex = node(nt, "ShaderNodeTexImage", (-550, 50))
+    tex.image = band_image(k)
+    tex.extension = "EXTEND"
+    nt.links.new(comb.outputs[0], tex.inputs["Vector"])
+    # fine grain, so close-ups are not smooth
+    grain = node(nt, "ShaderNodeTexNoise", (-550, -250))
+    grain.inputs["Scale"].default_value = 28.0
+    grain.inputs["Detail"].default_value = 8.0
+    nt.links.new(tc.outputs["Object"], grain.inputs["Vector"])
+    mixv = node(nt, "ShaderNodeMix", (-300, 0), data_type="FLOAT")
+    mixv.inputs["Factor"].default_value = 0.18
+    nt.links.new(tex.outputs["Color"], mixv.inputs["A"])
+    nt.links.new(grain.outputs["Fac"], mixv.inputs["B"])
+    ramp = node(nt, "ShaderNodeValToRGB", (-120, 0))
+    # the sun is a point light, so the inner planets get far more of it:
+    # darker surfaces there keep every planet's bands readable
+    lit = min(max((S.ORBIT[k] / 9.0) ** 2, 0.15), 1.0)
+    e = ramp.color_ramp.elements
+    e[0].position, e[0].color = 0.0, (*[c * 0.05 * lit for c in rgb], 1)
+    e[1].position, e[1].color = 1.0, (*[min(c * 1.05 + 0.08, 1) * lit for c in rgb], 1)
+    e.new(0.45).color = (*[c * 0.45 * lit for c in rgb], 1)
+    nt.links.new(mixv.outputs["Result"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], b.inputs["Base Color"])
+    bump = node(nt, "ShaderNodeBump", (-120, -300))
+    bump.inputs["Strength"].default_value = 0.25
+    bump.inputs["Distance"].default_value = 0.02
+    nt.links.new(mixv.outputs["Result"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], b.inputs["Normal"])
     # a rim of the planet's own colour, brighter while commits land on it
-    lw = node(nt, "ShaderNodeLayerWeight", (-400, -400))
-    lw.inputs["Blend"].default_value = 0.35
-    pw = node(nt, "ShaderNodeMath", (-200, -400), operation="POWER")
-    pw.inputs[1].default_value = 2.0
+    lw = node(nt, "ShaderNodeLayerWeight", (-400, -500))
+    lw.inputs["Blend"].default_value = 0.3
+    pw = node(nt, "ShaderNodeMath", (-200, -500), operation="POWER")
+    pw.inputs[1].default_value = 5.0
     nt.links.new(lw.outputs["Facing"], pw.inputs[0])
-    glow = node(nt, "ShaderNodeValue", (-200, -600))
+    glow = node(nt, "ShaderNodeValue", (-200, -700))
     glow.outputs[0].default_value = 0.0
-    base = node(nt, "ShaderNodeMath", (-50, -600), operation="ADD")
-    base.inputs[1].default_value = 1.6
+    base = node(nt, "ShaderNodeMath", (-50, -700), operation="ADD")
+    base.inputs[1].default_value = 0.7
     nt.links.new(glow.outputs[0], base.inputs[0])
-    mul = node(nt, "ShaderNodeMath", (0, -400), operation="MULTIPLY")
+    mul = node(nt, "ShaderNodeMath", (0, -500), operation="MULTIPLY")
     nt.links.new(pw.outputs[0], mul.inputs[0])
     nt.links.new(base.outputs[0], mul.inputs[1])
-    em = node(nt, "ShaderNodeEmission", (150, -400))
+    em = node(nt, "ShaderNodeEmission", (150, -500))
     em.inputs["Color"].default_value = (*rgb, 1)
     nt.links.new(mul.outputs[0], em.inputs["Strength"])
-    add = node(nt, "ShaderNodeAddShader", (350, -200))
+    add = node(nt, "ShaderNodeAddShader", (350, -300))
     nt.links.new(b.outputs[0], add.inputs[0])
     nt.links.new(em.outputs[0], add.inputs[1])
     nt.links.new(add.outputs[0], out.inputs["Surface"])
@@ -222,6 +264,10 @@ class Planet:
         x, y, z = TL.place(k, frame)
         self.ob.location = (x, y, z)
         self.ob.scale = [max(r, 0.001)] * 3
+        # each planet spins on its own tilted axis
+        n = S.ORDER.index(k)
+        self.ob.rotation_euler = (0.25 * math.sin(n * 2.1), 0.0,
+                                  TL.t_of(frame) * (0.25 + 0.1 * math.sin(n)))
         self.glow.default_value = 6.0 * TL.touched(k, frame)
         # the orbit appears once the planet has reached it
         drift = 1.0

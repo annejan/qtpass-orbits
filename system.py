@@ -18,6 +18,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 D = json.load(open(os.path.join(HERE, "data", "files.json")))
 PATHS, SAMPLES = D["paths"], D["samples"]
 TAGS = json.load(open(os.path.join(HERE, "data", "tags.json")))
+PROFILES = json.load(open(os.path.join(HERE, "data", "profiles.json")))  # the planets' bands
 TIMES = [s["t"] for s in SAMPLES]
 DONOR_MIN = 40   # lines a donor must lose in the same commit
 RENAMES = {"dialog": "configdialog", "progressindicator": "qprogressindicator"}
