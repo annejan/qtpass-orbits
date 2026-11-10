@@ -4,3 +4,4 @@ renders/
 *.blend*
 __pycache__/
 shots*.jpg
+shot-*.jpg

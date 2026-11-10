@@ -228,3 +228,41 @@ def camera(frame):
         cam = [cam[a] + w * (fc[a] - cam[a]) for a in range(3)]
         tgt = [tgt[a] + w * ((x, y, z)[a] - tgt[a]) for a in range(3)]
     return tuple(cam), tuple(tgt), lens
+
+
+# ---------------------------------------------------------------- titles
+
+def _system_at(day):
+    b = S.SIZES[S.sample_at(ts(day))]
+    return len(b), sum(b.values())
+
+
+def cards():
+    """(start, end, layout, big line, small line), timed to the clock."""
+    q_classes, q_lines = _system_at("2025-12-31")
+    _, spring_from = _system_at("2026-03-01")
+    _, spring_to = _system_at("2026-05-31")
+    classes, lines = len(S.SIZES[-1]), sum(S.SIZES[-1].values())
+    split = sorted(S.DISPLAY[k] for k, d in S.DONOR.items()
+                   if datetime.fromtimestamp(S.TIMES[S.BORN[k]]).date().isoformat()
+                   in ("2026-09-16", "2026-09-17"))
+    return [
+        (0.3, 4.5, "centre", "QtPass", "a solar system of classes"),
+        (4.8, 8.8, "lower", "2014 – 2015", "MainWindow and its dialogs"),
+        (10.6, 14.6, "lower", "November 2016",
+         "Pass, ImitatePass and RealPass split off MainWindow"),
+        (15.6, 18.6, "lower", "March 2018", "datahelpers breaks into three"),
+        (19.0, 22.2, "lower", "September 2018",
+         "QtPass splits off MainWindow: “It compiles, ship it . .”"),
+        (22.6, 25.8, "lower", "2019 – 2025",
+         f"seven quiet years: {q_classes} classes, {q_lines:,} lines"),
+        (26.6, 32.6, "lower", "spring 2026",
+         f"{spring_from:,} lines become {spring_to:,} in three months"),
+        (40.0, 46.6, "lower", "16 – 17 September",
+         f"{len(split)} classes pulled off in two days"),
+        (47.4, 51.0, "lower", "24 September",
+         "“Comments that say why, once”: MainWindow sheds 461 lines"),
+        (57.0, 63.5, "lower", "today", f"{classes} classes, {lines:,} lines"),
+        (70.0, 83.5, "centre", "QtPass",
+         f"{classes} classes · {lines:,} lines · twelve years"),
+    ]
