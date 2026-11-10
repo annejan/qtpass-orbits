@@ -283,15 +283,19 @@ class Planet:
         dead = 1.0 if k not in TL.DEATH or frame < TL.DEATH[k] else 0.0
         self.orbit_glow.default_value = 0.12 * on * drift * dead
         self.orbit.hide_render = not (on and drift * dead > 0)
-        # names: on the big planets, and on new ones for their first seconds
+        # names: on the big planets (fewer of them the further out the
+        # camera is), and on new ones for their first seconds
         n = TL.lines_at(k, frame)
-        fresh = 0 <= frame - TL.BIRTH[k] < 4 * FPS
-        show = (n >= LABEL_LINES or fresh or k == "mainwindow") and not hidden
+        need = LABEL_LINES + 45 * max(math.dist(cam_loc, (0, 0, 0)) - 10, 0)
+        big = min(max((n - need) / 250 + 1, 0.0), 1.0)
+        age = (frame - TL.BIRTH[k]) / FPS
+        fresh = min(max(4 - age, 0.0), 1.0) if age >= 0 else 0.0
+        g = 0.0 if hidden else max(big, fresh, 1.0 if k == "mainwindow" else 0.0)
         d = math.dist(cam_loc, (x, y, z))
         self.label.location = (x, y, z + r + 0.12 + 0.02 * d)
         self.label.scale = [0.05 * d + 0.2] * 3
-        self.label_glow.default_value = 2.0 if show else 0.0
-        self.label.hide_render = not show
+        self.label_glow.default_value = 2.0 * g
+        self.label.hide_render = g < 0.02
 
 
 # ---------------------------------------------------------------- releases
