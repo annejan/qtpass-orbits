@@ -188,9 +188,16 @@ def planet_material(k):
     grain.inputs["Scale"].default_value = 28.0
     grain.inputs["Detail"].default_value = 8.0
     nt.links.new(tc.outputs["Object"], grain.inputs["Vector"])
+    # big classes average many lines into each band, which flattens them:
+    # stretch their bands harder
+    c = min(max(S.SIZES[-1].get(k, max(s.get(k, 0) for s in S.SIZES)) / 2000.0, 0.0), 1.0)
+    stretch = node(nt, "ShaderNodeMapRange", (-400, 50))
+    stretch.inputs["From Min"].default_value = 0.3 * c
+    stretch.inputs["From Max"].default_value = 1.0 - 0.3 * c
+    nt.links.new(tex.outputs["Color"], stretch.inputs["Value"])
     mixv = node(nt, "ShaderNodeMix", (-300, 0), data_type="FLOAT")
-    mixv.inputs["Factor"].default_value = 0.18
-    nt.links.new(tex.outputs["Color"], mixv.inputs["A"])
+    mixv.inputs["Factor"].default_value = 0.18 - 0.08 * c
+    nt.links.new(stretch.outputs["Result"], mixv.inputs["A"])
     nt.links.new(grain.outputs["Fac"], mixv.inputs["B"])
     ramp = node(nt, "ShaderNodeValToRGB", (-120, 0))
     # the sun is a point light, so the inner planets get far more of it:

@@ -68,7 +68,7 @@ def _history():
 BORN, DIED, DONOR = _history()
 ORDER = sorted(BORN, key=lambda k: (BORN[k], -SIZES[BORN[k]][k]))
 # Orbit radius by age, packed tighter where many were born together.
-ORBIT = {k: 3.0 + 1.25 * math.sqrt(n) * 1.6 for n, k in enumerate(ORDER)}
+ORBIT = {k: 4.2 + 1.25 * math.sqrt(n) * 1.6 for n, k in enumerate(ORDER)}
 PHASE = {k: (n * 2.39996) % (2 * math.pi) for n, k in enumerate(ORDER)}  # golden angle
 TILT = {k: 0.07 * math.sin(n * 1.7) for n, k in enumerate(ORDER)}  # a slight inclination
 

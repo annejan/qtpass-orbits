@@ -11,7 +11,7 @@ files.json: {"paths": [path, ...], "classes": {basename: ClassName},
              "samples": [{"t": unix, "rev": sha, "subject": s,
                           "files": {path_index: lines}}, ...]}
 tags.json: [[tag, unix], ...] for every v* tag up to REV, oldest first.
-profiles.json: {basename: [256 mean line lengths, 0..1]}, the planets' bands.
+profiles.json: {basename: [512 mean line lengths, 0..1]}, the planets' bands.
 """
 import json
 import os
@@ -23,7 +23,7 @@ REPO = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser("~/Projects/QtPa
 REV = sys.argv[2] if len(sys.argv) > 2 else "refs/heads/main"
 OUT = sys.argv[3] if len(sys.argv) > 3 else "data"
 SOURCE = re.compile(r"\.(cpp|h|ui)$")
-PROFILE = 256  # bands of line length per planet, pole to pole
+PROFILE = 512  # bands of line length per planet, pole to pole
 
 
 def git(*a):
