@@ -20,7 +20,7 @@ import system as S  # noqa: E402
 import timeline as TL  # noqa: E402
 
 FPS, FRAMES = TL.FPS, TL.FRAMES
-LATO = os.path.expanduser("~/.local/share/fonts/Lato/Lato-Regular.ttf")
+LATO = os.path.join(HERE, "assets", "fonts", "Lato-Regular.ttf")
 # The colour of a planet: the era it was born in.
 ERA = [(2014, (1.0, 0.72, 0.32)), (2016, (1.0, 0.48, 0.25)), (2018, (0.95, 0.32, 0.5)),
        (2019, (0.6, 0.45, 1.0)), (2026, (0.3, 0.8, 1.0))]

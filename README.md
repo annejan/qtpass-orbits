@@ -62,13 +62,20 @@ the words for each card and run with `CARDS_LANG=<lang>`.
 name without its extension, wherever it lives in the tree, outside `tests/`;
 a renamed class (Dialog to ConfigDialog) stays the same planet.
 
-Needs Blender 5.1, Python 3 with numpy, scipy, Pillow and matplotlib, ffmpeg,
-and the Lato fonts in `~/.local/share/fonts/Lato/`.
+Needs Blender 5.1, Python 3 with numpy, scipy, Pillow and matplotlib, and ffmpeg.
+The Lato fonts come with it, in `assets/fonts/`.
 
 ## License
 
-MIT, see [LICENSE](LICENSE): take the code and make your own films.
-The QtPass logo in `assets/` is QtPass's own artwork (based on
-[Heart-padlock by AnonMoos](https://commons.wikimedia.org/wiki/File:Heart-padlock.svg))
-and is not covered by it; `data/` is counted from QtPass's public git
-history.
+[REUSE](https://reuse.software) compliant; `REUSE.toml` says which file is
+under which terms, the texts are in `LICENSES/`:
+
+- the code and everything else of this film: MIT (see also `LICENSE`), so
+  take it and make your own
+- the Lato fonts in `assets/fonts/`: SIL Open Font License 1.1, by Łukasz
+  Dziedzic
+- the QtPass logo: CC0, after
+  [Heart-padlock by AnonMoos](https://commons.wikimedia.org/wiki/File:Heart-padlock.svg),
+  as in QtPass
+- the data counted from QtPass's git history (`data/`): GPL-3.0-or-later,
+  as QtPass itself
