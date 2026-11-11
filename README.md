@@ -64,3 +64,11 @@ a renamed class (Dialog to ConfigDialog) stays the same planet.
 
 Needs Blender 5.1, Python 3 with numpy, scipy, Pillow and matplotlib, ffmpeg,
 and the Lato fonts in `~/.local/share/fonts/Lato/`.
+
+## License
+
+MIT, see [LICENSE](LICENSE): take the code and make your own films.
+The QtPass logo in `assets/` is QtPass's own artwork (based on
+[Heart-padlock by AnonMoos](https://commons.wikimedia.org/wiki/File:Heart-padlock.svg))
+and is not covered by it; `data/` is counted from QtPass's public git
+history.
