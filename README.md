@@ -1,5 +1,9 @@
 # QtPass orbits
 
+Watch the film: https://youtu.be/g7piAI_qoxE (4K)
+
+All three films in one world: https://youtu.be/R2otmal-P-A (4K, 3:12, code in [qtpass-world](https://github.com/annejan/qtpass-world))
+
 The source code of [QtPass](https://qtpass.org) as a solar system. Every
 class is a planet, its size the lines of its `.cpp`, `.h` and `.ui`
 together, circling the sun in order of age: the 2014 classes close in, the
